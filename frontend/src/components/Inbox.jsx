@@ -230,7 +230,7 @@ export default function Inbox({ setView }) {
               } Emails`}
         </h2>
         {filteredEmails.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
             {filteredEmails.map((email) => (
               <EmailCard
                 key={email._id}

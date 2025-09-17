@@ -50,30 +50,36 @@ export default function EmailCard({
   };
 
   return (
-    <div className={`card-hover p-6 ${!read ? 'border-l-4 border-l-primary-500' : ''}`}>
+    <div className={`card-hover p-6 border-l-4 ${!read ? 'border-l-primary-500' : 'border-l-secondary-200'}`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-semibold text-sm">
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
             {getInitials(sender)}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold text-lg ${!read ? 'text-secondary-900' : 'text-secondary-700'}`}>
+            <h3 className={`font-semibold text-lg leading-tight ${!read ? 'text-secondary-900' : 'text-secondary-700'} line-clamp-2`} title={subject}>
               {subject}
             </h3>
-            <p className="text-sm text-secondary-500 truncate">{sender}</p>
-            <p className="text-xs text-secondary-400">{email.senderEmail}</p>
+            <p className="text-sm text-secondary-500 truncate" title={sender}>
+              {sender}
+            </p>
+            {email.senderEmail && (
+              <p className="text-xs text-secondary-400 truncate" title={email.senderEmail}>
+                {email.senderEmail}
+              </p>
+            )}
           </div>
         </div>
-        <button className="p-2 hover:bg-secondary-100 rounded-lg transition-colors">
+        <button className="p-2 hover:bg-secondary-100 rounded-lg transition-colors flex-shrink-0">
           <EllipsisVerticalIcon className="w-5 h-5 text-secondary-400" />
         </button>
       </div>
 
       {/* Content */}
       <div className="mb-4">
-        <p className={`text-sm leading-relaxed ${!read ? 'text-secondary-800' : 'text-secondary-600'}`}>
-          {email.summary}
+        <p className={`text-sm leading-relaxed line-clamp-3 ${!read ? 'text-secondary-800' : 'text-secondary-600'}`}>
+          {email.summary || email.body || 'Summary not available'}
         </p>
       </div>
 

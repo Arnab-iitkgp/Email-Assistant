@@ -79,22 +79,29 @@ app.get("/auth/google/callback", async (req, res) => {
     const email = userinfo.data.email;
 
     // Save user
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      existingUser.google.refreshToken =
-        tokens.refresh_token || existingUser.google.refreshToken;
-      await existingUser.save();
-    } else {
-      await User.create({
-        email,
-        google: { refreshToken: tokens.refresh_token },
-      });
-    }
-    res.cookie("userId", existingUser?._id || newUser._id, {
-      httpOnly: true,
-      secure: false, // true if using HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
+ // Save user
+let user;
+const existingUser = await User.findOne({ email });
+if (existingUser) {
+  existingUser.google.refreshToken =
+    tokens.refresh_token || existingUser.google.refreshToken;
+  await existingUser.save();
+  user = existingUser;
+} else {
+  user = await User.create({
+    email,
+    google: { refreshToken: tokens.refresh_token },
+  });
+}
+
+res.cookie("userId", user._id.toString(), {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // true on Render
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 30*24 * 60 * 60 * 1000,
+});
+
+
     res.redirect(`${process.env.FRONTEND_URL}`); // frontend dashboard
   } catch (err) {
     console.error("OAuth callback error:", err.response?.data || err.message);
