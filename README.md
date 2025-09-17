@@ -7,8 +7,8 @@
 
 An intelligent email productivity assistant that fetches emails, classifies them, summarizes content, extracts deadlines, integrates with Google Calendar, and sends daily digests and alerts via WhatsApp or Telegram. This project leverages a multi-agent architecture powered by LLMs to automate your email workflow.
 
-## ⚠️ Caution: Live Demo Not Fully Functional(Not Deployment Ready Completely)
-Please note that any publicly deployed version of this website is for demonstration purposes only. Features that rely on continuous background tasks, such as the email scheduler and alert system, may not be active. For full functionality, it is highly recommended that you clone this repository and run the project on your local machine.Also contact Developer as the webApp is not verified by Google yet
+## ⚠️ Caution: Live Demo Not Fully Functional(Not Deployment Ready Completely) and Please wait 1 to 2 min as server is deployed on render so it takes time to restart the server (thank you for understanding)
+Please note that any publicly deployed version of this website is for demonstration purposes only. Features that rely on continuous background tasks, such as the email scheduler and alert system, may not be active. For full functionality, it is highly recommended that you clone this repository and run the project on your local machine. Also contact Developer as the webApp is not verified by Google yet as test users are been given access to it.
 
 -----
 <img width="1882" height="919" alt="image" src="https://github.com/user-attachments/assets/2e63e6ae-74d7-40ef-bb6c-c2e99b52dabd" />
