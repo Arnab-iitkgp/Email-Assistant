@@ -23,7 +23,7 @@ async function sendAlerts() {
           timeStyle: "short",
         });
 
-        const msg = `⏰ Reminder!\nTask: ${email.subject}\nSummary: ${email.summary}\nDeadline: ${formattedDeadline}`;
+        const msg = `⏰ Reminder!\n\nTask: ${email.subject}\nSummary: ${email.summary}\nDeadline: ${formattedDeadline}`;
 
         // 24-hour alert
         if (!dl.alerted24h && diffHours <= 24 && diffHours > 23.5) {

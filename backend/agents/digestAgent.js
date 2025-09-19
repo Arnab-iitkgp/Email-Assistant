@@ -14,7 +14,7 @@ async function generateDigest() {
       userId: user._id,
       timestamp: { $gte: startOfDay },
       category: { $in: ["Urgent", "Important"] },
-    });
+    }).sort({ timestamp: -1 });//for recent to old
 
     const digest = emails
       .map((e) => `• ${e.subject} — ${e.summary}`)
@@ -36,13 +36,17 @@ async function generateDigest() {
     }
 
     // Prepare unified message (for both WhatsApp & Telegram)
-    const message = `📅 Date: ${now.toDateString()}\n\n${digestText}`;
+const message = `👋 Hello ${user.email},\n
+📬 Here is your email digest:\n
+🗓️ Date: ${now.toDateString()}\n
+${digestText}\n
+✨ Best regards,\nYour Email Assistant`;
 
     // Send via WhatsApp if phone number is stored
     if (user.phone) {
       await sendWhatsAppMessage(user.phone, "dailly_digest", [now.toDateString(), digestText]);
     }
-
+    
     // Send via Telegram if chatId exists
     if (user.chatId) {
       await sendTelegram(user.chatId, message);
