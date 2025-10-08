@@ -18,7 +18,7 @@ async function generateDigest() {
 
     const digest = emails
       .map((e) => `• ${e.subject} — ${e.summary}`)
-      .join("\n");
+      .join(" ");
 
     const digestText = digest || "No important emails today.";
 
