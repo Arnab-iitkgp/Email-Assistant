@@ -83,13 +83,9 @@ export default function Inbox({ setView }) {
   ];
 
   const filteredEmails = emails.filter((email) => {
-    const normalizedSelectedCategory =
-      selectedCategory === "all"
-        ? "all"
-        : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1);
-    const matchesCategory =
-      normalizedSelectedCategory === "all" ||
-      email.category === normalizedSelectedCategory;
+     const matchesCategory =
+    selectedCategory === "all" ||
+    email.category.toLowerCase() === selectedCategory.toLowerCase();
     const matchesSearch =
       email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||

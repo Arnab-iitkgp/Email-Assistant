@@ -102,7 +102,7 @@ res.cookie("userId", user._id.toString(), {
 });
 
 
-    res.redirect(`${process.env.FRONTEND_URL}`); // frontend dashboard
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard`); // frontend dashboard
   } catch (err) {
     console.error("OAuth callback error:", err.response?.data || err.message);
     res.status(500).send("Authentication failed - check logs for details");

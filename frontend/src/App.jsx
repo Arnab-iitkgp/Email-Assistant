@@ -16,10 +16,14 @@ function App() {
     const checkAuth = async () => {
       try {
         // Attempt to fetch data from an authenticated endpoint
-        await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/emails/today`, { withCredentials: true });
+      const res =  await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/emails/today`, { withCredentials: true });
+        console.log(res)
         // If successful, user is authenticated and should be redirected to dashboard if on landing page
-        if (window.location.pathname === '/' || window.location.pathname === '/dashboard') {
+        if (res && window.location.pathname === '/' || window.location.pathname === '/dashboard') {
           setView('inbox'); // Set initial view to inbox if authenticated
+        }
+        else {
+          setView('landing'); // Otherwise, show landing page
         }
       } catch (error) {
         // If not authenticated, ensure we are on the landing page
