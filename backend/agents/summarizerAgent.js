@@ -21,7 +21,7 @@ const summarizeEmail = async function (email) {
       .join("\n");
 
     // 3️⃣ Create prompt for Gemini summarizer
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = ai.getGenerativeModel({model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash"});
     const prompt = `You are an intelligent email summarizer.
 
 Summarize the following email in a concise manner in 20 words or less. Must keep the important information.Must keep any deadlines mentioned in the email. 

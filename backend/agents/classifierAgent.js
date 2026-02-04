@@ -49,7 +49,8 @@ function ruleBasedClassifier(email) {
 async function llmBasedClassifier(email) {
   try {
     const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = ai.getGenerativeModel({model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash"});
+
   const currentTimeIST = new Date().toLocaleString("en-US", {
   timeZone: "Asia/Kolkata",
 });
