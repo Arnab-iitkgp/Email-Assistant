@@ -1,16 +1,23 @@
 
 require('dotenv').config();
 const { Pinecone } = require('@pinecone-database/pinecone');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { HfInference } = require('@huggingface/inference');
 
-// ------------------- Gemini Embedding Setup -------------------
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// ------------------- HuggingFace Embedding Setup -------------------
+const hf = new HfInference(process.env.HF_TOKEN);
 
 async function getEmbedding(text) {
   try {
-    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-    const result = await model.embedContent(text);
-    return result.embedding.values; // Array of numbers
+    const response = await hf.featureExtraction({
+      model: 'sentence-transformers/all-mpnet-base-v2', // 768 dimensions matching Pinecone
+      inputs: text,
+    });
+    // The response is usually a 1D or 2D array. For all-mpnet-base-v2 it's typically [val1, val2, ...]
+    // depending on the input shape. If it returns an array of arrays (e.g. [[val1, val2]]), we take the first.
+    if (Array.isArray(response) && Array.isArray(response[0])) {
+      return response[0];
+    }
+    return response;
   } catch (err) {
     console.error("Error generating embedding:", err);
     return null;
@@ -36,7 +43,8 @@ async function storeEmailInVectorDB(emailDoc) {
           sender: emailDoc.sender,
           subject: emailDoc.subject,
           timestamp: emailDoc.timestamp,
-          category: emailDoc.category || "Uncategorized"
+          category: emailDoc.category || "Uncategorized",
+          body: emailDoc.body ? emailDoc.body.substring(0, 1000) : "" // Store up to 1000 chars of body for RAG context
         }
       }
     ]);

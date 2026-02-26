@@ -77,29 +77,34 @@ app.get("/auth/google/callback", async (req, res) => {
 
     const userinfo = await oauth2.userinfo.get();
     const email = userinfo.data.email;
+    const name = userinfo.data.name;
+    const picture = userinfo.data.picture;
 
     // Save user
- // Save user
-let user;
-const existingUser = await User.findOne({ email });
-if (existingUser) {
-  existingUser.google.refreshToken =
-    tokens.refresh_token || existingUser.google.refreshToken;
-  await existingUser.save();
-  user = existingUser;
-} else {
-  user = await User.create({
-    email,
-    google: { refreshToken: tokens.refresh_token },
-  });
-}
+    let user;
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      existingUser.name = name;
+      existingUser.picture = picture;
+      existingUser.google.refreshToken =
+        tokens.refresh_token || existingUser.google.refreshToken;
+      await existingUser.save();
+      user = existingUser;
+    } else {
+      user = await User.create({
+        email,
+        name,
+        picture,
+        google: { refreshToken: tokens.refresh_token },
+      });
+    }
 
-res.cookie("userId", user._id.toString(), {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // true on Render
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 30*24 * 60 * 60 * 1000,
-});
+    res.cookie("userId", user._id.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // true on Render
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
 
 
     res.redirect(`${process.env.FRONTEND_URL}/dashboard`); // frontend dashboard
@@ -112,6 +117,19 @@ res.cookie("userId", user._id.toString(), {
 app.post("/api/auth/logout", (req, res) => {
   res.clearCookie("userId");
   res.status(200).send("Logged out successfully");
+});
+
+app.get("/api/auth/me", async (req, res) => {
+  const userId = req.cookies.userId;
+  if (!userId) return res.status(401).send("Not authenticated");
+
+  try {
+    const user = await User.findById(userId).select("email name picture");
+    if (!user) return res.status(404).send("User not found");
+    res.json(user);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
 });
 
 // Fetch emails for all users for processing

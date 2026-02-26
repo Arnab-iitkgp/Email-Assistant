@@ -1,147 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-secondary-200;
-  }
-  
   body {
-    @apply bg-secondary-50 text-secondary-900 font-sans antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-slate-100 font-sans antialiased;
+    background-image:
+      linear-gradient(to right, #141417 1px, transparent 1px),
+      linear-gradient(to bottom, #141417 1px, transparent 1px);
+    background-size: 40px 40px;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+
+  * {
+    @apply border-border;
   }
-  
-  h1 {
-    @apply text-4xl lg:text-5xl;
-  }
-  
-  h2 {
-    @apply text-3xl lg:text-4xl;
-  }
-  
-  h3 {
-    @apply text-2xl lg:text-3xl;
-  }
-  
+
+  h1,
+  h2,
+  h3,
   h4 {
-    @apply text-xl lg:text-2xl;
-  }
-  
-  h5 {
-    @apply text-lg lg:text-xl;
-  }
-  
-  h6 {
-    @apply text-base lg:text-lg;
+    @apply font-bold tracking-tight text-white;
   }
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  .card-mastery {
+    @apply bg-surface border border-border rounded-sm p-5 transition-all duration-200 hover:border-muted;
   }
-  
-  .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-soft hover:shadow-medium;
+
+  .btn-mastery {
+    @apply inline-flex items-center justify-center px-4 py-2 font-bold uppercase tracking-widest text-xs rounded-none border transition-all active:translate-y-px;
   }
-  
-  .btn-secondary {
-    @apply btn bg-secondary-100 text-secondary-900 hover:bg-secondary-200 focus:ring-secondary-500;
+
+  .btn-mastery-primary {
+    @apply btn-mastery bg-primary text-white border-primary hover:bg-primary-hover shadow-glow;
   }
-  
-  .btn-outline {
-    @apply btn border border-secondary-300 bg-white text-secondary-700 hover:bg-secondary-50 focus:ring-secondary-500;
+
+  .btn-mastery-outline {
+    @apply btn-mastery bg-transparent text-white border-muted hover:border-white hover:bg-white/5;
   }
-  
-  .card {
-    @apply bg-white rounded-2xl shadow-soft border border-secondary-100 overflow-hidden;
+
+  .scrollbar-mastery {
+    scrollbar-width: thin;
+    scrollbar-color: #3F3F46 #09090B;
   }
-  
-  .card-hover {
-    @apply card transition-all duration-200 hover:shadow-medium hover:-translate-y-1;
+
+  .scrollbar-mastery::-webkit-scrollbar {
+    width: 6px;
   }
-  
-  .input {
-    @apply w-full px-4 py-3 rounded-xl border border-secondary-200 bg-white text-secondary-900 placeholder-secondary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+
+  .scrollbar-mastery::-webkit-scrollbar-track {
+    background: #09090B;
   }
-  
-  .input-error {
-    @apply input border-error-300 focus:ring-error-500;
-  }
-  
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  }
-  
-  .badge-primary {
-    @apply badge bg-primary-100 text-primary-800;
-  }
-  
-  .badge-success {
-    @apply badge bg-success-100 text-success-800;
-  }
-  
-  .badge-warning {
-    @apply badge bg-warning-100 text-warning-800;
-  }
-  
-  .badge-error {
-    @apply badge bg-error-100 text-error-800;
-  }
-  
-  .badge-secondary {
-    @apply badge bg-secondary-100 text-secondary-800;
+
+  .scrollbar-mastery::-webkit-scrollbar-thumb {
+    background-color: #3F3F46;
+    border: 1px solid #09090B;
   }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-  
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .gradient-primary {
-    background: linear-gradient(135deg, theme('colors.primary.500'), theme('colors.primary.600'));
-  }
-  
-  .gradient-secondary {
-    background: linear-gradient(135deg, theme('colors.secondary.100'), theme('colors.secondary.200'));
-  }
-  
-  /* Line clamp utilities */
-  .line-clamp-1 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
-  }
-  
-  .line-clamp-2 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-  
-  .line-clamp-3 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+  .text-shadow-glow {
+    text-shadow: 0 0 10px rgba(0, 102, 255, 0.4);
   }
 }

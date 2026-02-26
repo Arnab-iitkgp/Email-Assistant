@@ -36,7 +36,7 @@ async function generateDigest() {
     }
 
     // Prepare unified message (for both WhatsApp & Telegram)
-const message = `👋 Hello ${user.email},\n
+    const message = `👋 Hello ${user.email},\n
 📬 Here is your email digest:\n
 🗓️ Date: ${now.toDateString()}\n
 ${digestText}\n
@@ -46,7 +46,7 @@ ${digestText}\n
     if (user.phone) {
       await sendWhatsAppMessage(user.phone, "dailly_digest", [now.toDateString(), digestText]);
     }
-    
+
     // Send via Telegram if chatId exists
     if (user.chatId) {
       await sendTelegram(user.chatId, message);

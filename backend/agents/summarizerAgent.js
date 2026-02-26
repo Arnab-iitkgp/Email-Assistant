@@ -1,7 +1,7 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 const { findSimilarEmails } = require("./ragAgent"); // use your RAGAgent functions
 
-const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const summarizeEmail = async function (email) {
   try {
@@ -14,14 +14,12 @@ const summarizeEmail = async function (email) {
     const contextText = similarEmails
       .map(
         (e, i) =>
-          `Email ${i + 1}:\nSubject: ${e.metadata.subject}\nSender: ${
-            e.metadata.sender || "unknown"
+          `Email ${i + 1}:\nSubject: ${e.metadata.subject}\nSender: ${e.metadata.sender || "unknown"
           }\nBody: ${e.metadata.body || ""}\n---`
       )
       .join("\n");
 
-    // 3️⃣ Create prompt for Gemini summarizer
-    const model = ai.getGenerativeModel({model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash"});
+    // 3️⃣ Create prompt for Groq summarizer
     const prompt = `You are an intelligent email summarizer.
 
 Summarize the following email in a concise manner in 20 words or less. Must keep the important information.Must keep any deadlines mentioned in the email. 
@@ -36,17 +34,15 @@ ${contextText}
 
 Respond in one line.`;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.3,
+      max_tokens: 50,
     });
 
     const summary =
-      result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+      chatCompletion.choices[0]?.message?.content?.trim() ||
       "Summary not available";
 
     return summary;

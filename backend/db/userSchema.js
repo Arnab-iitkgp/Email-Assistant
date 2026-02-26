@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
+  name: String,
+  picture: String,
   google: {
     accessToken: String,
     refreshToken: String,
@@ -13,7 +15,7 @@ const userSchema = new mongoose.Schema({
   },
   chatId: {
     type: String, // or Number (depending), but String is safe
-    default:process.env.TELEGRAM_CHAT_ID || "", // Telegram chat ID for sending messages
+    default: process.env.TELEGRAM_CHAT_ID || "", // Telegram chat ID for sending messages
     required: false,
   },
   createdAt: { type: Date, default: Date.now },

@@ -9,18 +9,14 @@ const createCalendarEvent = require("../agents/calendarAgent");
 const { storeEmailInVectorDB } = require("./ragAgent");
 
 function delay(ms) {
-  // prevent Gemini rate limits
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// 👉 helper: get IST today's bounds in epoch seconds
 function getISTDayBounds() {
   const now = new Date();
 
-  // shift current time to IST
   const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
 
-  // IST midnight today
   const istMidnight = new Date(
     istNow.getFullYear(),
     istNow.getMonth(),
@@ -28,10 +24,8 @@ function getISTDayBounds() {
     0, 0, 0
   );
 
-  // IST midnight tomorrow
   const istTomorrow = new Date(istMidnight.getTime() + 24 * 60 * 60 * 1000);
 
-  // convert back to UTC epoch seconds
   const afterEpoch = Math.floor((istMidnight.getTime() - 5.5 * 60 * 60 * 1000) / 1000);
   const beforeEpoch = Math.floor((istTomorrow.getTime() - 5.5 * 60 * 60 * 1000) / 1000);
 
@@ -55,7 +49,6 @@ async function fetchEmailsForAllUsers() {
 
       const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-      // ✅ fetch IST day bounds
       const { afterEpoch, beforeEpoch } = getISTDayBounds();
       const query = `is:inbox after:${afterEpoch} before:${beforeEpoch}`;
 
@@ -66,8 +59,7 @@ async function fetchEmailsForAllUsers() {
 
       const messages = res.data.messages || [];
       for (let msg of messages) {
-        await delay(10000); // avoid hitting Gemini rate limits
-
+        await delay(10000);
         const msgDetail = await gmail.users.messages.get({
           userId: "me",
           id: msg.id,
@@ -90,18 +82,24 @@ async function fetchEmailsForAllUsers() {
           continue;
         }
 
-        // AI processing
         const category = await classifyEmail({ subject, body });
-        await delay(10000);
-        const summary = await summarizeEmail({ subject, body });
-        await delay(10000);
-        const deadlines = await extractDeadlines({ subject, body });
+
+        let summary = "";
+        if (category.toLowerCase() !== "spam") {
+          await delay(10000);
+          summary = await summarizeEmail({ subject, body });
+        }
+
+        let deadlines = []
+        if (["urgent", "important", "fyi"].includes(category.toLowerCase())) {
+          await delay(10000);
+          deadlines = await extractDeadlines({ subject, body });
+        }
 
         console.log(`📧 Email from: ${sender}`);
         console.log(`📌 Subject: ${subject}`);
         console.log(`🔖 Classified as: ${category}`);
 
-        // Save to DB
         const newEmail = await Email.create({
           userId: user._id,
           sender,
@@ -113,7 +111,7 @@ async function fetchEmailsForAllUsers() {
           summary,
           deadlines,
         });
-        // store to pinecone
+
         await storeEmailInVectorDB({
           _id: newEmail._id,
           sender,

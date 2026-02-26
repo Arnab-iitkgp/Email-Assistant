@@ -1,280 +1,238 @@
-// src/components/Inbox.jsx
-import EmailCard from "./EmailCard";
-import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  PlusIcon,
-  EnvelopeIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  EyeSlashIcon,
-  ArrowLeftOnRectangleIcon,
-} from "@heroicons/react/24/outline";
-import { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import EmailCard from "./EmailCard";
+import DOMPurify from 'dompurify';
+import {
+  EnvelopeIcon,
+  ExclamationTriangleIcon,
+  StarIcon,
+  InformationCircleIcon,
+  XMarkIcon,
+  ArrowPathIcon,
+  ArchiveBoxIcon
+} from "@heroicons/react/24/outline";
 
-export default function Inbox({ setView }) {
+export default function Inbox() {
+  const navigate = useNavigate();
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedEmail, setSelectedEmail] = useState(null);
+  const [user, setUser] = useState(null);
 
-  const handleLogout = async () => {
+  const fetchEmails = async () => {
+    setLoading(true);
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`,
-        {},
+      const response = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/emails/today`,
         { withCredentials: true }
       );
-      setView("landing"); // Redirect to landing page on successful logout
-    } catch (error) {
-      console.error("Logout failed:", error);
-      // Optionally, show an error message to the user
+      setEmails(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error("Fetch failed:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchEmails = async () => {
+    const fetchUser = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/emails/today`,
-          { withCredentials: true }
-        );
-        console.log(response.data); // inspect data
-        setEmails(Array.isArray(response.data) ? response.data : []);
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/me`, { withCredentials: true });
+        setUser(res.data);
       } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch user:", err);
       }
     };
+    fetchUser();
     fetchEmails();
   }, []);
 
-  const categories = [
-    { id: "all", label: "All", icon: EnvelopeIcon, count: emails.length },
-    {
-      id: "urgent",
-      label: "Urgent",
-      icon: ExclamationTriangleIcon,
-      count: emails.filter((e) => e.category === "Urgent").length,
-    },
-    {
-      id: "important",
-      label: "Important",
-      icon: CheckCircleIcon,
-      count: emails.filter((e) => e.category === "Important").length,
-    },
-    {
-      id: "fyi",
-      label: "FYI",
-      icon: InformationCircleIcon,
-      count: emails.filter((e) => e.category === "FYI").length,
-    },
-    {
-      id: "spam",
-      label: "Spam",
-      icon: EyeSlashIcon,
-      count: emails.filter((e) => e.category === "Spam").length,
-    },
+  const stats = [
+    { label: "All Items", id: "all", count: emails.length, icon: EnvelopeIcon, color: 'text-white' },
+    { label: "Urgent Attention", id: "urgent", count: emails.filter(e => e.category?.toLowerCase() === 'urgent').length, icon: ExclamationTriangleIcon, color: 'text-danger' },
+    { label: "Important", id: "important", count: emails.filter(e => e.category?.toLowerCase() === 'important').length, icon: StarIcon, color: 'text-warning' },
+    { label: "FYI & Updates", id: "fyi", count: emails.filter(e => e.category?.toLowerCase() === 'fyi').length, icon: InformationCircleIcon, color: 'text-primary' },
+    { label: "Spam Blocked", id: "spam", count: emails.filter(e => e.category?.toLowerCase() === 'spam').length, icon: ArchiveBoxIcon, color: 'text-muted' },
   ];
 
   const filteredEmails = emails.filter((email) => {
-     const matchesCategory =
-    selectedCategory === "all" ||
-    email.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesSearch =
-      email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      email.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      email.body.toLowerCase().includes(searchTerm.toLowerCase()); // Search body as well
-    return matchesCategory && matchesSearch;
+    return selectedCategory === "all" || email.category.toLowerCase() === selectedCategory.toLowerCase();
   });
 
-  const unreadCount = filteredEmails.filter((email) => !email.read).length; // Assuming 'read' property exists
-  const totalCount = filteredEmails.length;
+  const emailBlobUrl = useMemo(() => {
+    if (!selectedEmail?.body) return null;
 
-  if (loading) {
-    return <div className="text-center py-10">Loading emails...</div>;
-  }
+    const clean = DOMPurify.sanitize(selectedEmail.body, {
+      ADD_TAGS: ['style', 'iframe', 'meta', 'link'],
+      ADD_ATTR: ['target', 'srcset', 'sizes', 'rel', 'href'],
+      WHOLE_DOCUMENT: true
+    });
 
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-500">
-        Error: {error.message}
-      </div>
-    );
-  }
+    let finalContent = clean;
+    if (!clean.toLowerCase().includes('<html')) {
+      finalContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                padding: 40px;
+                margin: 0;
+                background-color: #fff;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+              }
+              img { max-width: 100% !important; height: auto !important; }
+              a { color: #0066FF; text-decoration: underline; word-break: break-all; }
+            </style>
+          </head>
+          <body>${clean}</body>
+        </html>
+      `;
+    }
+
+    const blob = new Blob([finalContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    return url;
+  }, [selectedEmail]);
+
+  useEffect(() => {
+    return () => {
+      if (emailBlobUrl) URL.revokeObjectURL(emailBlobUrl);
+    };
+  }, [emailBlobUrl]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-12 font-sans">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-secondary-900">Inbox</h1>
-          <p className="text-secondary-500 mt-1">
-            {unreadCount} unread of {totalCount} emails
+          <h2 className="text-2xl md:text-4xl font-black font-headline uppercase tracking-tight text-white leading-none">
+            Hi <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">{user?.name?.split(' ')[0] || 'there'}</span>,
+          </h2>
+          <p className="text-[9px] md:text-[10px] font-mono text-muted uppercase tracking-[0.3em] mt-3 md:mt-4 flex items-center">
+            Neural Workspace Synchronization Active
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button onClick={handleLogout} className="btn-outline">Logout</button>
-        </div>
-      </div>
+        <button onClick={fetchEmails} className="w-full md:w-auto p-3 bg-surface border border-border hover:border-primary/50 transition-all flex items-center justify-center space-x-3 group">
+          <span className="text-[9px] font-bold font-headline uppercase text-muted group-hover:text-primary transition-colors tracking-widest">Refresh Buffer</span>
+          <ArrowPathIcon className={`w-4 h-4 text-muted group-hover:text-primary ${loading ? 'animate-spin text-primary' : ''}`} />
+        </button>
+      </header>
 
-      {/* Search Bar */}
-      {/* <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-secondary-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search emails..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input pl-12"
-        />
-      </div> */}
-
-      {/* Category Filters */}
-      <div className="flex flex-wrap gap-2">
-        {categories.map((category) => {
-          const Icon = category.icon;
-          const isActive = selectedCategory === category.id;
-
-          return (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "bg-primary-600 text-white shadow-medium"
-                  : "bg-white text-secondary-600 border border-secondary-200 hover:bg-secondary-50 hover:border-secondary-300"
+      {/* Bento Grid Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+        {stats.map((stat) => (
+          <button
+            key={stat.id}
+            onClick={() => setSelectedCategory(selectedCategory === stat.id ? 'all' : stat.id)}
+            className={`flex flex-col items-start justify-between p-6 bg-surface border transition-all duration-500 text-left relative group overflow-hidden ${selectedCategory === stat.id
+              ? `border-${stat.id === 'urgent' ? 'danger' : stat.id === 'important' ? 'warning' : stat.id === 'all' ? 'white' : 'primary'} ring-1 ring-${stat.id === 'urgent' ? 'danger' : stat.id === 'important' ? 'warning' : stat.id === 'all' ? 'white' : 'primary'}/20 shadow-glow`
+              : 'border-border hover:border-primary/30'
               }`}
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              {category.label}
-              <span
-                className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  isActive
-                    ? "bg-primary-500 text-white"
-                    : "bg-secondary-100 text-secondary-600"
-                }`}
-              >
-                {category.count}
-              </span>
-            </button>
-          );
-        })}
+          >
+            {selectedCategory === stat.id && (
+              <div className={`absolute inset-0 opacity-[0.05] bg-${stat.id === 'urgent' ? 'danger' : stat.id === 'important' ? 'warning' : stat.id === 'all' ? 'white' : 'primary'}`} />
+            )}
+
+            <div className="relative z-10 w-full">
+              <div className="flex items-center justify-between mb-6">
+                <p className={`text-[9px] font-bold font-headline uppercase tracking-[0.3em] transition-colors ${selectedCategory === stat.id ? stat.color : 'text-muted'
+                  }`}>
+                  {stat.label}
+                </p>
+                <stat.icon className={`w-4 h-4 transition-all duration-300 ${selectedCategory === stat.id ? stat.color : 'text-muted opacity-20'
+                  }`} />
+              </div>
+              <p className="text-6xl font-bold font-headline text-white tracking-tighter tabular-nums leading-none">
+                {stat.count}
+              </p>
+            </div>
+          </button>
+        ))}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-              <EnvelopeIcon className="w-6 h-6 text-primary-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-secondary-500">
-                Total Emails
-              </p>
-              <p className="text-2xl font-bold text-secondary-900">
-                {totalCount}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center">
-              <EnvelopeIcon className="w-6 h-6 text-warning-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-secondary-500">Unread</p>
-              <p className="text-2xl font-bold text-secondary-900">
-                {unreadCount}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center">
-              <CheckCircleIcon className="w-6 h-6 text-success-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-secondary-500">Read</p>
-              <p className="text-2xl font-bold text-secondary-900">
-                {totalCount - unreadCount}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Action Zone Header */}
+      <div className="flex items-center border-b border-border pb-6">
+        <h3 className="text-[10px] font-bold font-headline uppercase tracking-[0.4em] text-white border-l-2 border-primary pl-6">
+          {selectedCategory === 'all' ? 'Universal Logic Feed' : `${selectedCategory} focus`}
+        </h3>
       </div>
 
-      {/* Email List */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-secondary-900">
-          {selectedCategory === "all"
-            ? "Recent Emails"
-            : `${
-                categories.find((c) => c.id === selectedCategory)?.label
-              } Emails`}
-        </h2>
-        {filteredEmails.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-            {filteredEmails.map((email) => (
-              <EmailCard
-                key={email._id}
-                email={email}
-                onShowEmail={setSelectedEmail}
-              />
-            ))}
+        {loading ? (
+          <div className="py-24 text-center font-mono text-[10px] text-muted animate-pulse uppercase tracking-widest">
+            [SYNCHRONIZING_MESSAGES...]
           </div>
+        ) : filteredEmails.length > 0 ? (
+          filteredEmails.map((email) => (
+            <EmailCard
+              key={email._id}
+              email={email}
+              onShowEmail={setSelectedEmail}
+            />
+          ))
         ) : (
-          <div className="card p-12 text-center">
-            <div className="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <EnvelopeIcon className="w-8 h-8 text-secondary-400" />
-            </div>
-            <h3 className="text-lg font-medium text-secondary-900 mb-2">
-              No emails found
-            </h3>
-            <p className="text-secondary-500">
-              {searchTerm
-                ? "Try adjusting your search terms"
-                : "No emails in this category"}
-            </p>
+          <div className="py-32 text-center bg-surface/10 border border-dashed border-border">
+            <EnvelopeIcon className="w-12 h-12 text-muted mx-auto mb-6 opacity-20" />
+            <p className="text-[10px] font-mono uppercase text-muted tracking-widest">Neural buffer is empty.</p>
           </div>
         )}
       </div>
-      {/* Email Detail Modal */}
+
       {selectedEmail && (
-        <div className="fixed inset-0 bg-secondary-900 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
-            <button
-              onClick={() => setSelectedEmail(null)}
-              className="absolute top-3 right-3 text-secondary-500 hover:text-secondary-700"
-            >
-              <PlusIcon className="w-6 h-6 rotate-45" />
-            </button>
-            <h2 className="text-2xl font-bold text-secondary-900 mb-4">
-              Subject: {selectedEmail.subject}
-            </h2>
-            <p className="text-secondary-700 mb-2">
-              <strong>From:</strong> {selectedEmail.sender}
-            </p>
-            <p className="text-secondary-700 mb-4">
-              <strong>Time:</strong>{" "}
-              {new Date(selectedEmail.timestamp).toLocaleString()}
-            </p>
-            <div
-              className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: selectedEmail.body }}
-            ></div>
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-[100] flex items-center justify-center p-6 lg:p-24">
+          <div className="bg-surface border border-border w-full max-w-5xl h-full flex flex-col shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-background/30 flex justify-between items-center">
+              <div className="flex items-center space-x-6 min-w-0">
+                <div className="flex items-center space-x-3 flex-shrink-0">
+                  <div className="w-8 h-8 bg-primary flex items-center justify-center font-black text-white text-sm">
+                    {selectedEmail.sender[0]}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white uppercase tracking-wider truncate max-w-[200px]">{selectedEmail.sender.split(' <')[0]}</p>
+                    <p className="text-[9px] text-muted uppercase tracking-[0.2em]">{selectedEmail.category}</p>
+                  </div>
+                </div>
+                <div className="h-4 w-px bg-border hidden md:block" />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white leading-tight uppercase tracking-tight truncate">
+                    {selectedEmail.subject}
+                  </h3>
+                  <p className="text-[8px] font-mono text-muted uppercase tracking-widest mt-0.5">
+                    ID: {selectedEmail._id.slice(-6).toUpperCase()} // {new Date(selectedEmail.timestamp).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedEmail(null)}
+                className="p-2 bg-surface border border-border hover:border-danger hover:text-danger transition-all ml-4 flex-shrink-0"
+              >
+                <XMarkIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 bg-white overflow-hidden relative">
+              {emailBlobUrl ? (
+                <iframe
+                  title="Email Content"
+                  className="w-full h-full border-none"
+                  src={emailBlobUrl}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted font-mono text-xs uppercase animate-pulse">
+                  [CONTENT_UNAVAILABLE]
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-3 border-t border-border bg-background/30 flex justify-end space-x-3">
+              <button className="btn-mastery-outline px-6 py-1.5 text-[9px]" onClick={() => setSelectedEmail(null)}>Close Session</button>
+            </div>
           </div>
         </div>
       )}

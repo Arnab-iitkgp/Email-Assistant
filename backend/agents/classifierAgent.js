@@ -1,5 +1,6 @@
 const axios = require("axios");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 //rule based classifier
 
 function ruleBasedClassifier(email) {
@@ -48,42 +49,38 @@ function ruleBasedClassifier(email) {
 
 async function llmBasedClassifier(email) {
   try {
-    const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = ai.getGenerativeModel({model: process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash"});
+    const currentTimeIST = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Kolkata",
+    });
 
-  const currentTimeIST = new Date().toLocaleString("en-US", {
-  timeZone: "Asia/Kolkata",
-});
-const prompt = `You are an intelligent email classifier.
+    const prompt = `You are an intelligent email classifier.
 
 Classify the following email into one of these categories: Urgent, Important, FYI, Spam.
 
 Definitions:
-- Urgent: Requires immediate action. Includes emergencies, medical needs, or time-sensitive deadlines/events that are **within 48 hours** from now (based on Indian Standard Time).Any mail coming from CDC or mail like shortlist, new company available are urgent
-- Important: Requires attention, but not immediately. Includes deadlines more than 48 hours away, tasks, meetings, schedules, or programming contests like Codeforces (including Educational Contests, Div. 2, Div. 3, etc.).
-- FYI: Informational content that doesn’t require action.
-- Spam: Unsolicited, irrelevant, or promotional content.
+- Urgent: Requires immediate action. Includes emergencies, medical needs, or time-sensitive deadlines/events that are **within 48 hours** from now. Any email from CDC or regarding shortlists/new company availability is Urgent. 
+  **CRITICAL**: DO NOT mark OTPs, verification codes, or login links as Urgent, even if they expire soon.
+- Important: Requires attention, but not immediately. Includes deadlines more than 48 hours away, tasks, meetings, or programming contests (e.g., Codeforces).
+- FYI: Informational content. **OTPs, login verifications, and transient security codes MUST be categorized as FYI.**
+- Spam: Unsolicited or promotional content.
 
 Current IST time: ${currentTimeIST}
-
-If a deadline is mentioned, convert it to IST and check how far it is from now.
-If it’s within 48 hours, mark it as **Urgent**. Otherwise, use the rules above.
 
 Email:
 Subject: ${email.subject}
 Body: ${email.body}
 
-Respond with **only one word**: Urgent, Important, FYI, or Spam.`;
-     const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-    })
-    let category = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-    category = category.replace(/[^\w]/g, "");//for removing the punctuations
+Respond with **only one word**: Urgent, Important, FYI, or Spam. (Treat security tokens/links as FYI).`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.1,
+      max_tokens: 10,
+    });
+
+    let category = chatCompletion.choices[0]?.message?.content?.trim() || "";
+    category = category.replace(/[^\w]/g, ""); //for removing the punctuations
     console.log("LLM raw category:", category);
     if (["Urgent", "Important", "FYI", "Spam"].includes(category)) {
       return category;
