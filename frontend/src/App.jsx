@@ -93,16 +93,16 @@ const DashboardLayout = () => {
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden h-full">
-          {/* Main Workspace - Independent Scroll */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-14 scrollbar-mastery h-full">
+        <div className="flex flex-col xl:flex-row flex-1 overflow-y-auto xl:overflow-hidden h-full">
+          {/* Main Workspace - Independent Scroll on Desktop */}
+          <div className="flex-1 xl:overflow-y-auto p-4 md:p-8 lg:p-14 scrollbar-mastery xl:h-full shrink-0">
             <div className="max-w-5xl mx-auto w-full">
               <Outlet />
             </div>
           </div>
 
-          {/* Supplemental Info Panel (Right Sidebar) - Independent Scroll */}
-          <aside className="w-80 border-l border-border bg-surface/50 hidden xl:flex flex-col h-full overflow-y-auto scrollbar-mastery">
+          {/* Supplemental Info Panel (Right Sidebar) - Bottom on Mobile */}
+          <aside className="w-full xl:w-80 border-t xl:border-t-0 xl:border-l border-border bg-surface/50 flex flex-col xl:h-full xl:overflow-y-auto scrollbar-mastery shrink-0">
             <div className="p-8 space-y-10">
               <section>
                 <h4 className="relative text-sm font-bold skew-x-[-10deg] uppercase tracking-tighter text-white mb-8 flex items-center group">
