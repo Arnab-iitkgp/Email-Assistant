@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import DOMPurify from 'dompurify';
 
 export default function DigestHistory() {
   const [digests, setDigests] = useState([]);
@@ -59,7 +60,7 @@ export default function DigestHistory() {
                 <div className="bg-background/80 p-4 md:p-6 border border-border font-mono text-[11px] md:text-xs text-slate-400 leading-relaxed mb-6">
                   <p className="text-primary font-bold mb-4">LOG_START:</p>
                   <p className="text-white font-bold mb-4">{digest.greeting}</p>
-                  <div dangerouslySetInnerHTML={{ __html: digest.digestText.replace(/\n/g, '<br/>') }}></div>
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(digest.digestText.replace(/\n/g, '<br/>')) }}></div>
                   <p className="text-primary font-bold mt-4">LOG_END.</p>
                 </div>
 

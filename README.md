@@ -2,7 +2,7 @@
 
 An intelligent email productivity assistant that fetches emails, classifies them, summarizes content, extracts deadlines, integrates with Google Calendar, and sends daily digests and alerts via WhatsApp or Telegram. This project leverages a multi-agent architecture powered by LLMs to automate your email workflow.
 
-## ⚠️ Caution: Live link is only accesible to test user as per google policy, feel free to contact owner to be one of test user for this beta version. (thank you for understanding)
+## ⚠️ Caution: Live link is only accesible to test user as per google policy, feel free to contact me to be one of test user for this beta version. (thank you for understanding)
 
 
 -----

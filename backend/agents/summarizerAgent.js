@@ -1,38 +1,41 @@
 const Groq = require("groq-sdk");
-const { findSimilarEmails } = require("./ragAgent"); // use your RAGAgent functions
+const { findSimilarEmails } = require("./ragAgent");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const summarizeEmail = async function (email) {
+const summarizeEmail = async function (email, userId = null) {
   try {
-    const text = (email.subject + " " + email.body).toLowerCase();
+    // Retrieve similar past emails with proper filtering
+    const similarEmails = await findSimilarEmails(email.subject, email.body, {
+      userId,
+      excludeCategories: ["Spam"],
+      topK: 3,
+      scoreThreshold: 0.45,
+    });
 
-    // Retrieve similar past emails from Pinecone via RAGAgent
-    const similarEmails = await findSimilarEmails(text);
+    // Build context only from genuinely relevant past emails
+    let contextSection = "";
+    if (similarEmails.length > 0) {
+      const contextText = similarEmails
+        .map(
+          (e, i) =>
+            `Email ${i + 1} (similarity: ${(e.score * 100).toFixed(0)}%):\nSubject: ${e.metadata.subject}\nSender: ${e.metadata.sender || "unknown"}\nBody: ${e.metadata.body || ""}\n---`
+        )
+        .join("\n");
 
-    // Build context for prompt
-    const contextText = similarEmails
-      .map(
-        (e, i) =>
-          `Email ${i + 1}:\nSubject: ${e.metadata.subject}\nSender: ${e.metadata.sender || "unknown"
-          }\nBody: ${e.metadata.body || ""}\n---`
-      )
-      .join("\n");
+      contextSection = `\nRelevant Past Emails (for additional context only):\n${contextText}\n`;
+    }
 
-    // 3️⃣ Create prompt for Groq summarizer
     const prompt = `You are an intelligent email summarizer.
 
-Summarize the following email in a concise manner in 20 words or less. Must keep the important information.Must keep any deadlines mentioned in the email. 
-Include relevant context from past related emails.
+Summarize the following email in a concise manner in 20 words or less. Must keep the important information. Must keep any deadlines mentioned in the email.
+${contextSection ? "If the past emails below are relevant, incorporate brief context. If they are NOT related to the new email, IGNORE them completely." : ""}
 
 New Email:
 Subject: ${email.subject}
 Body: ${email.body}
-
-Relevant Past Emails:
-${contextText}
-
-Respond in one line.`;
+${contextSection}
+Respond in one line. Do NOT reference the past emails unless they directly relate to the new email's topic.`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],

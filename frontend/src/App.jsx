@@ -58,6 +58,10 @@ const DashboardLayout = () => {
       }
     };
     fetchDeadlines();
+
+    // Auto-refresh deadlines every 5 minutes
+    const intervalId = setInterval(fetchDeadlines, 5 * 60 * 1000);
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
@@ -112,7 +116,7 @@ const DashboardLayout = () => {
                     deadlines.slice(0, 5).map((d, idx) => (
                       <div key={`${d._id}-${idx}`} className={`group bg-surface border-l-2 p-3 border-y border-r border-border transition-all hover:bg-white/5 relative overflow-hidden cursor-help ${d.category === 'Urgent' ? 'border-l-danger' : 'border-l-primary'}`}>
                         <p className={`text-[9px] font-bold uppercase mb-1 ${d.category === 'Urgent' ? 'text-danger' : 'text-primary'}`}>
-                          {new Date(d.deadline).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                          {new Date(d.deadline).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })}
                         </p>
                         <h5 className="text-xs font-bold text-white leading-tight uppercase tracking-tight truncate group-hover:whitespace-normal group-hover:overflow-visible mb-0 transition-all">
                           {d.subject}
@@ -128,7 +132,7 @@ const DashboardLayout = () => {
                           </div>
                         </div>
 
-                        <p className="text-[9px] text-muted mt-2 font-mono uppercase tracking-widest opacity-60">Due {new Date(d.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[9px] text-muted mt-2 font-mono uppercase tracking-widest opacity-60">Due {new Date(d.deadline).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                     ))
                   ) : (
@@ -145,10 +149,10 @@ const DashboardLayout = () => {
                   </h4>
                   <div className="flex flex-col items-end">
                     <span className="text-[11px] font-mono text-white font-black tracking-widest leading-none">
-                      {currentTime.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {currentTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                     <span className="text-[8px] font-mono text-primary font-bold uppercase mt-1">
-                      {currentTime.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                      {currentTime.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
                 </div>
@@ -163,30 +167,77 @@ const DashboardLayout = () => {
                   </div>
                   <div className="grid grid-cols-7 gap-1">
                     {(() => {
-                      const now = new Date();
-                      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
-                      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                      const today = now.getDate();
+                      // Build a map of day-of-month → deadline info for the current month
+                      const istOffset = 5.5 * 60 * 60 * 1000;
+                      const nowUTC = new Date();
+                      const istNow = new Date(nowUTC.getTime() + istOffset);
+                      const currentYear = istNow.getFullYear();
+                      const currentMonth = istNow.getMonth();
+                      const today = istNow.getDate();
+
+                      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+                      // Map each deadline to its IST day-of-month
+                      const deadlineDayMap = {};
+                      deadlines.forEach((d) => {
+                        const dlDate = new Date(new Date(d.deadline).getTime() + istOffset);
+                        if (dlDate.getFullYear() === currentYear && dlDate.getMonth() === currentMonth) {
+                          const dayNum = dlDate.getDate();
+                          if (!deadlineDayMap[dayNum]) {
+                            deadlineDayMap[dayNum] = { count: 0, hasUrgent: false };
+                          }
+                          deadlineDayMap[dayNum].count++;
+                          if (d.category === 'Urgent') {
+                            deadlineDayMap[dayNum].hasUrgent = true;
+                          }
+                        }
+                      });
 
                       return [
                         ...Array(firstDay).fill(null),
                         ...Array.from({ length: daysInMonth }, (_, i) => i + 1)
-                      ].map((day, i) => (
-                        <div
-                          key={i}
-                          className={`
-                            h-6 flex items-center justify-center text-[9px] font-mono transition-all
-                            ${day === today ? 'bg-primary text-white font-bold shadow-glow-sm' : day ? 'text-slate-400 hover:bg-white/5' : ''}
-                            ${day ? 'border border-transparent' : ''}
-                          `}
-                        >
-                          {day}
-                        </div>
-                      ));
+                      ].map((day, i) => {
+                        const dlInfo = day ? deadlineDayMap[day] : null;
+                        const isToday = day === today;
+
+                        return (
+                          <div
+                            key={i}
+                            className={`
+                              h-7 flex flex-col items-center justify-center text-[9px] font-mono transition-all relative
+                              ${isToday ? 'bg-primary text-white font-bold shadow-glow-sm' : day ? 'text-slate-400 hover:bg-white/5' : ''}
+                              ${day ? 'border border-transparent' : ''}
+                              ${dlInfo && !isToday ? 'bg-white/5' : ''}
+                            `}
+                            title={dlInfo ? `${dlInfo.count} deadline${dlInfo.count > 1 ? 's' : ''} on this day` : ''}
+                          >
+                            {day}
+                            {dlInfo && (
+                              <div className="flex items-center gap-[2px] mt-[1px]">
+                                <span className={`w-1 h-1 rounded-full ${dlInfo.hasUrgent ? 'bg-danger' : isToday ? 'bg-white' : 'bg-primary'}`} />
+                                {dlInfo.count > 1 && (
+                                  <span className={`w-1 h-1 rounded-full ${isToday ? 'bg-white/60' : 'bg-primary/60'}`} />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
                     })()}
                   </div>
                   <div className="mt-4 pt-4 border-t border-border/30 flex items-center justify-between">
-                    <p className="text-[8px] font-mono text-muted uppercase tracking-widest">System Sync: Active</p>
+                    <p className="text-[8px] font-mono text-muted uppercase tracking-widest">{Object.keys(
+                      deadlines.reduce((acc, d) => {
+                        const istOffset = 5.5 * 60 * 60 * 1000;
+                        const dlDate = new Date(new Date(d.deadline).getTime() + istOffset);
+                        const nowIST = new Date(Date.now() + istOffset);
+                        if (dlDate.getFullYear() === nowIST.getFullYear() && dlDate.getMonth() === nowIST.getMonth()) {
+                          acc[dlDate.getDate()] = true;
+                        }
+                        return acc;
+                      }, {})
+                    ).length} days with deadlines</p>
                     <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
                   </div>
                 </div>

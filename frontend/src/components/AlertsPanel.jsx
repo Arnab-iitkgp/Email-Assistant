@@ -75,7 +75,7 @@ export default function AlertsPanel() {
                   </div>
 
                   <div className="flex flex-row md:flex-col items-center gap-3">
-                    <button className="btn-mastery-outline py-1.5 px-4 text-[9px] whitespace-nowrap">Resolve Event</button>
+                    <span className="py-1.5 px-4 text-[9px] whitespace-nowrap text-muted border border-border bg-surface/50 font-mono uppercase tracking-widest">Pending</span>
                     <div className="md:opacity-0 group-hover:opacity-100 transition-opacity text-primary">
                       <ChevronRightIcon className="w-4 h-4" />
                     </div>

@@ -142,16 +142,27 @@ app.get("/api/emails/today", async (req, res) => {
   const userId = req.cookies.userId;
   if (!userId) return res.status(401).send("User not authenticated");
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  // Calculate strict IST boundaries for "today"
+  const now = new Date();
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffsetMs);
+  
+  // Start of today in IST, converted back to UTC
+  const startOfToday = new Date(
+    Date.UTC(istNow.getFullYear(), istNow.getMonth(), istNow.getDate(), 0, 0, 0)
+  );
+  const realStart = new Date(startOfToday.getTime() - istOffsetMs);
 
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
+  // End of today in IST, converted back to UTC
+  const endOfToday = new Date(
+    Date.UTC(istNow.getFullYear(), istNow.getMonth(), istNow.getDate(), 23, 59, 59, 999)
+  );
+  const realEnd = new Date(endOfToday.getTime() - istOffsetMs);
 
   try {
     const emails = await Email.find({
       userId,
-      timestamp: { $gte: startOfToday, $lte: endOfToday },
+      timestamp: { $gte: realStart, $lte: realEnd },
     }).sort({ timestamp: -1 });
 
     res.json(emails);
@@ -184,32 +195,34 @@ app.get("/api/alerts/emails", async (req, res) => {
   }
 
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Calculate IST "start of today" correctly regardless of server timezone
+    // IST = UTC + 5:30, so IST midnight = UTC 18:30 of the previous day
+    const now = new Date();
+    const istOffsetMs = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + istOffsetMs);
+    const istMidnight = new Date(
+      istNow.getFullYear(), istNow.getMonth(), istNow.getDate(), 0, 0, 0
+    );
+    // Convert IST midnight back to UTC for the DB query
+    const todayStartUTC = new Date(istMidnight.getTime() - istOffsetMs);
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 59, 999);
+    // Show deadlines for the next 7 days so users can see what's coming
+    const endDateUTC = new Date(todayStartUTC.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const emails = await Email.aggregate([
-      // Only get the user’s emails in relevant categories
       {
         $match: {
           userId: new mongoose.Types.ObjectId(userId),
           category: { $in: ["Urgent", "Important", "FYI"] },
         },
       },
-      // Break deadlines array into separate documents
       { $unwind: "$deadlines" },
-      // Filter deadlines within today → tomorrow
       {
         $match: {
-          "deadlines.deadline": { $gte: today, $lte: tomorrow },
+          "deadlines.deadline": { $gte: todayStartUTC, $lte: endDateUTC },
         },
       },
-      // Sort by deadline
       { $sort: { "deadlines.deadline": 1 } },
-      // Optionally reshape the output
       {
         $project: {
           _id: 1,
@@ -220,8 +233,9 @@ app.get("/api/alerts/emails", async (req, res) => {
           category: 1,
           threadId: 1,
           timestamp: 1,
-          deadline: "$deadlines.deadline",   // flatten into top-level field
+          deadline: "$deadlines.deadline",
           alerted24h: "$deadlines.alerted24h",
+          alerted3h: "$deadlines.alerted3h",
           alerted1h: "$deadlines.alerted1h",
         },
       },

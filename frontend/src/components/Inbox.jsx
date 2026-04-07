@@ -50,11 +50,11 @@ export default function Inbox() {
   }, []);
 
   const stats = [
-    { label: "All Items", id: "all", count: emails.length, icon: EnvelopeIcon, color: 'text-white' },
-    { label: "Urgent Attention", id: "urgent", count: emails.filter(e => e.category?.toLowerCase() === 'urgent').length, icon: ExclamationTriangleIcon, color: 'text-danger' },
-    { label: "Important", id: "important", count: emails.filter(e => e.category?.toLowerCase() === 'important').length, icon: StarIcon, color: 'text-warning' },
-    { label: "FYI & Updates", id: "fyi", count: emails.filter(e => e.category?.toLowerCase() === 'fyi').length, icon: InformationCircleIcon, color: 'text-primary' },
-    { label: "Spam Blocked", id: "spam", count: emails.filter(e => e.category?.toLowerCase() === 'spam').length, icon: ArchiveBoxIcon, color: 'text-muted' },
+    { label: "All Items", id: "all", count: emails.length, icon: EnvelopeIcon, color: 'text-white', activeClass: 'border-white ring-1 ring-white/20 shadow-glow', overlayClass: 'bg-white' },
+    { label: "Urgent Attention", id: "urgent", count: emails.filter(e => e.category?.toLowerCase() === 'urgent').length, icon: ExclamationTriangleIcon, color: 'text-danger', activeClass: 'border-danger ring-1 ring-danger/20 shadow-glow', overlayClass: 'bg-danger' },
+    { label: "Important", id: "important", count: emails.filter(e => e.category?.toLowerCase() === 'important').length, icon: StarIcon, color: 'text-warning', activeClass: 'border-warning ring-1 ring-warning/20 shadow-glow', overlayClass: 'bg-warning' },
+    { label: "FYI & Updates", id: "fyi", count: emails.filter(e => e.category?.toLowerCase() === 'fyi').length, icon: InformationCircleIcon, color: 'text-primary', activeClass: 'border-primary ring-1 ring-primary/20 shadow-glow', overlayClass: 'bg-primary' },
+    { label: "Spam Blocked", id: "spam", count: emails.filter(e => e.category?.toLowerCase() === 'spam').length, icon: ArchiveBoxIcon, color: 'text-muted', activeClass: 'border-slate-500 ring-1 ring-slate-500/20 shadow-glow', overlayClass: 'bg-slate-500' },
   ];
 
   const filteredEmails = emails.filter((email) => {
@@ -133,12 +133,12 @@ export default function Inbox() {
             key={stat.id}
             onClick={() => setSelectedCategory(selectedCategory === stat.id ? 'all' : stat.id)}
             className={`flex flex-col items-start justify-between p-6 bg-surface border transition-all duration-500 text-left relative group overflow-hidden ${selectedCategory === stat.id
-              ? `border-${stat.id === 'urgent' ? 'danger' : stat.id === 'important' ? 'warning' : stat.id === 'all' ? 'white' : 'primary'} ring-1 ring-${stat.id === 'urgent' ? 'danger' : stat.id === 'important' ? 'warning' : stat.id === 'all' ? 'white' : 'primary'}/20 shadow-glow`
+              ? stat.activeClass
               : 'border-border hover:border-primary/30'
               }`}
           >
             {selectedCategory === stat.id && (
-              <div className={`absolute inset-0 opacity-[0.05] bg-${stat.id === 'urgent' ? 'danger' : stat.id === 'important' ? 'warning' : stat.id === 'all' ? 'white' : 'primary'}`} />
+              <div className={`absolute inset-0 opacity-[0.05] ${stat.overlayClass}`} />
             )}
 
             <div className="relative z-10 w-full">

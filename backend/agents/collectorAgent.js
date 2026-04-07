@@ -87,7 +87,7 @@ async function fetchEmailsForAllUsers() {
         let summary = "";
         if (category.toLowerCase() !== "spam") {
           await delay(10000);
-          summary = await summarizeEmail({ subject, body });
+          summary = await summarizeEmail({ subject, body }, user._id);
         }
 
         let deadlines = []
@@ -114,6 +114,7 @@ async function fetchEmailsForAllUsers() {
 
         await storeEmailInVectorDB({
           _id: newEmail._id,
+          userId: user._id,
           sender,
           subject,
           body,
@@ -122,11 +123,15 @@ async function fetchEmailsForAllUsers() {
         });
 
         if (deadlines.length > 0) {
-          await createCalendarEvent(user.email, {
-            subject,
-            summary,
-            deadlines,
-          });
+          try {
+            await createCalendarEvent(user.email, {
+              subject,
+              summary,
+              deadlines,
+            });
+          } catch (calErr) {
+            console.error(`Google Calendar sync failed for "${subject}":`, calErr.message);
+          }
         }
       }
 
