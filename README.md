@@ -2,15 +2,18 @@
 
 An intelligent email productivity assistant that fetches emails, classifies them, summarizes content, extracts deadlines, integrates with Google Calendar, and sends daily digests and alerts via WhatsApp or Telegram. This project leverages a multi-agent architecture powered by LLMs to automate your email workflow.
 
-## ⚠️ Caution: Live link is only accesible to test user as per google policy, feel free to contact to be one of test user for this beta version and Please wait 1 to 2 min as server is deployed on render so it takes time to restart the server (thank you for understanding)
-Please note that any publicly deployed version of this website is for demonstration purposes only. Features that rely on continuous background tasks, such as the email scheduler and alert system, may not be active. For full functionality, it is highly recommended that you clone this repository and run the project on your local machine. Also contact Developer as the webApp is not verified by Google yet and only test users are been given access to it.
+## ⚠️ Caution: Live link is only accesible to test user as per google policy, feel free to contact owner to be one of test user for this beta version. (thank you for understanding)
+
 
 -----
-<img width="1882" height="919" alt="image" src="https://github.com/user-attachments/assets/2e63e6ae-74d7-40ef-bb6c-c2e99b52dabd" />
+<img width="1911" height="958" alt="image" src="https://github.com/user-attachments/assets/9d49311e-4933-4ef2-9f0f-5102314f81e6" />
+
 
 
 # Alert
-<img width="1890" height="763" alt="image" src="https://github.com/user-attachments/assets/e23b120a-820d-433e-9895-00d79feafb8d" />
+<img width="1908" height="960" alt="image" src="https://github.com/user-attachments/assets/7f7d948d-bc68-4a76-9ad9-a292ad10af63" />
+
+
 
 
 # Test Alert and Summary Message
@@ -39,9 +42,9 @@ Please note that any publicly deployed version of this website is for demonstrat
 | **Frontend**  | React.js                                                      |
 | **Database**  | MongoDB                                                       |
 | **Vector DB** | Pinecone                                                      |
-| **APIs**      | **Gmail API**, **Google Calendar API**, **Gemini API** |
+| **APIs**      | **Gmail API**, **Google Calendar API**, **Groq API**, **Hugging face** |
 | **Messaging** | **WhatsApp API**, **Telegram Bot API**                        |
-| **Scheduler** | **Node Cron**                                  
+| **Deployment** | **AWS EC2, Nginx**  
 
 
 -----
@@ -124,7 +127,8 @@ Follow these instructions to set up and run the project locally.
   - **npm** or **yarn**
   - **MongoDB** instance (local or cloud like MongoDB Atlas)
   - **Google Cloud Project** with Gmail API and Google Calendar API enabled.
-  - **Gemini**  API Key.
+  - **Groq**  API Key.
+  - **HF_TOKEN** Hugginface Access token.
   - **Pinecone** API Key and Index.
   - **Telegram Bot Token** and **Chat ID**.
 
