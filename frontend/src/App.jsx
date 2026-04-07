@@ -117,7 +117,7 @@ const DashboardLayout = () => {
                         <h5 className="text-xs font-bold text-white leading-tight uppercase tracking-tight truncate group-hover:whitespace-normal group-hover:overflow-visible mb-0 transition-all">
                           {d.subject}
                         </h5>
-
+                                                                                                                                                                                                                                                                                                                                          
                         {/* Hover Summary Reveal - High Contrast */}
                         <div className="max-h-0 opacity-0 group-hover:max-h-96 group-hover:opacity-100 overflow-hidden transition-all duration-300 ease-in-out">
                           <div className="mt-2 border-t border-border/30 pt-2">
