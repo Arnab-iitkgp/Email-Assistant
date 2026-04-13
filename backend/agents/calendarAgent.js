@@ -33,6 +33,33 @@ const createCalendarEvent = async function (userEmail, emailObj) {
   for (const item of emailObj.deadlines) {
     const start = new Date(item.deadline);
     const end = new Date(start.getTime() + 30 * 60 * 1000); // 30 min duration
+    const eventSummary = emailObj.subject || "No Subject";
+
+    // --- Duplicate check: see if an event with the same summary exists near this time ---
+    try {
+      const existingEvents = await calendar.events.list({
+        calendarId: "primary",
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+        q: eventSummary,
+        singleEvents: true,
+        maxResults: 5,
+      });
+
+      const isDuplicate = (existingEvents.data.items || []).some(
+        (ev) => ev.summary === eventSummary
+      );
+
+      if (isDuplicate) {
+        console.log(
+          `⏭️ Calendar event already exists: "${eventSummary}" at ${start.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} — skipping`
+        );
+        continue;
+      }
+    } catch (checkErr) {
+      // If the check fails, proceed to create (better to risk a dup than to skip)
+      console.warn(`Could not check for existing calendar events: ${checkErr.message}`);
+    }
 
     // Build reminders based on the actual schema fields
     const reminders = [
@@ -42,7 +69,7 @@ const createCalendarEvent = async function (userEmail, emailObj) {
     ];
 
     const calendarEvent = {
-      summary: emailObj.subject || "No Subject",
+      summary: eventSummary,
       description: `${emailObj.summary || "No summary available"}\n\n— Auto-created by EmailPro`,
       start: { dateTime: start.toISOString(), timeZone: "Asia/Kolkata" },
       end: { dateTime: end.toISOString(), timeZone: "Asia/Kolkata" },
@@ -58,13 +85,13 @@ const createCalendarEvent = async function (userEmail, emailObj) {
         resource: calendarEvent,
       });
       console.log(
-        `Google Calendar event created: ${emailObj.subject} → ${start.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} | ${response.data.htmlLink}`
+        `Google Calendar event created: ${eventSummary} → ${start.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} | ${response.data.htmlLink}`
       );
       results.push(response.data);
     } catch (error) {
       // Log and continue — don't let one failed event block the rest
       console.error(
-        `Failed to create calendar event for "${emailObj.subject}" at ${start.toISOString()}:`,
+        `Failed to create calendar event for "${eventSummary}" at ${start.toISOString()}:`,
         error.message
       );
     }

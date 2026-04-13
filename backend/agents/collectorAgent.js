@@ -59,6 +59,12 @@ async function fetchEmailsForAllUsers() {
 
       const messages = res.data.messages || [];
       for (let msg of messages) {
+        // Quick pre-check: skip if we've already stored this Gmail message
+        const alreadyExists = await Email.findOne({ userId: user._id, gmailMsgId: msg.id });
+        if (alreadyExists) {
+          continue;
+        }
+
         await delay(10000);
         const msgDetail = await gmail.users.messages.get({
           userId: "me",
@@ -76,8 +82,9 @@ async function fetchEmailsForAllUsers() {
         const threadId = msgDetail.data.threadId;
         const timestamp = new Date(parseInt(msgDetail.data.internalDate));
 
-        const exists = await Email.findOne({ userId: user._id, threadId });
-        if (exists) {
+        // Skip if we already processed any message from this thread
+        const threadExists = await Email.findOne({ userId: user._id, threadId });
+        if (threadExists) {
           console.log(`Skipping already processed email: ${subject}`);
           continue;
         }
@@ -100,20 +107,47 @@ async function fetchEmailsForAllUsers() {
         console.log(`📌 Subject: ${subject}`);
         console.log(`🔖 Classified as: ${category}`);
 
-        const newEmail = await Email.create({
-          userId: user._id,
-          sender,
-          subject,
-          body,
-          threadId,
-          timestamp,
-          category,
-          summary,
-          deadlines,
-        });
+        // Atomic upsert: prevents race conditions between concurrent poll cycles
+        let newEmail;
+        try {
+          newEmail = await Email.findOneAndUpdate(
+            { userId: user._id, threadId },
+            {
+              $setOnInsert: {
+                userId: user._id,
+                gmailMsgId: msg.id,
+                sender,
+                subject,
+                body,
+                threadId,
+                timestamp,
+                category,
+                summary,
+                deadlines,
+                calendarSynced: false,
+              },
+            },
+            { upsert: true, new: true, rawResult: true }
+          );
+        } catch (dupErr) {
+          if (dupErr.code === 11000) {
+            console.log(`Duplicate detected (race condition caught) for: ${subject}`);
+            continue;
+          }
+          throw dupErr;
+        }
+
+        // Only process further if this was a NEW insert, not an existing match
+        const wasInserted = newEmail.lastErrorObject?.upserted || !newEmail.lastErrorObject?.updatedExisting;
+        if (!wasInserted) {
+          console.log(`Skipping already processed email (upsert matched): ${subject}`);
+          continue;
+        }
+
+        const savedEmail = newEmail.value;
 
         await storeEmailInVectorDB({
-          _id: newEmail._id,
+          _id: savedEmail._id,
           userId: user._id,
           sender,
           subject,
@@ -122,13 +156,18 @@ async function fetchEmailsForAllUsers() {
           category,
         });
 
-        if (deadlines.length > 0) {
+        if (deadlines.length > 0 && !savedEmail.calendarSynced) {
           try {
             await createCalendarEvent(user.email, {
               subject,
               summary,
               deadlines,
             });
+            // Mark as synced to prevent re-creating events on any future runs
+            await Email.updateOne(
+              { _id: savedEmail._id },
+              { $set: { calendarSynced: true } }
+            );
           } catch (calErr) {
             console.error(`Google Calendar sync failed for "${subject}":`, calErr.message);
           }
